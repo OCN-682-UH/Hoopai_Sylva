@@ -1,35 +1,29 @@
-#week 2 classwork, learnin ggplot
+#week 3 homework, making a penguin plot
 
 #all the packages used
 library(tidyverse)
 library(palmerpenguins)
 library(ggplot2)
+library(here)
 
-view(penguins) #look at jah penguins
 
-#using alpha & size
-ggplot(data=penguins, 
+#making boxplot
+hwplot1<-ggplot(data=penguins, 
        mapping = aes(x = bill_depth_mm,
                      y = bill_length_mm,
-                     color = species,
-                     size = body_mass_g,
-                     alpha = flipper_length_mm
-       )) +
-  geom_point()+
-  labs(title = "Bill depth and length",
-       subtitle = "Dimensions for Adelie, Chinstrap, and Gentoo Penguins",
-       x = "Bill depth (mm)", y = "Bill length (mm)",
-       color = "Species") +
-  scale_color_viridis_d()
+                     color = species))+
+  geom_boxplot(lwd=1.2)+
+  geom_point(alpha=.5)+
+  theme_classic(base_size=8)+
+  xlab("Bill Depth (mm)")+ylab("Bill Length (mm)")+
+  scale_color_manual(values=c("red2","yellow3","green3"))+
+  scale_x_continuous(breaks=seq(15,22,2))
+
+ggsave(here("Week 03","Output","penguin.png"))
 
 
-#facet
-ggplot(data=penguins, 
-       mapping = aes(x = bill_depth_mm,
-                     y = bill_length_mm,
-                     color = species,
-       )) +
-  geom_point()+
-  scale_color_viridis_d()+
-  facet_grid(species~sex)+
-  guides(color = FALSE)
+  
+         
+
+
+
