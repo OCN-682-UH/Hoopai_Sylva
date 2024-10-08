@@ -1,0 +1,83 @@
+---
+title: "My Week 6 in MB612"
+author: "Hanalei"
+date: "2024-10-01"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.path = "../Output/")
+```
+
+# Intro to Penguins. 
+today, we are working w/ penguin data to *learn* **R Markdown**
+
+# Load Libraries
+```{r}
+library(tidyverse)
+library(here)
+library(cowplot)
+library(lubridate)
+library(rmarkdown)
+library(tinytex)
+library(palmerpenguins)
+library(kableExtra)
+```
+
+# Read in data
+```{r}
+conddata<-read_csv(here("Week 05","Data", "CondData.csv"))
+depthdata<-read_csv(here("Week 05","Data", "DepthData.csv")) #use last weeks df
+```
+# Change df around
+```{r}
+cond_dates<-conddata%>% # make a new df
+  mutate(Date = mdy_hms(date))%>% # change into standard datetime
+  select(-date)
+
+conddepth<-cond_dates%>%
+  mutate(date = round_date(Date,"10 mins"))%>% #round up to 10 min
+  select(-Date)%>% #get rid of old "Date" column
+  left_join(.,depthdata)%>% # join two datasets together
+  drop_na()%>%
+  select(date, everything())%>%# drop NAs
+  select(date, everything())%>% # move "date" column in front
+  pivot_longer(cols = Temperature:Depth, # the cols you want to pivot. This says select the temp to percent SGD cols  
+               names_to = "Variables", # the names of the new cols with all the column names 
+               values_to = "Values")%>%
+  group_by(date, Variables)%>% 
+  summarise(mean_vals = mean(Values, na.rm = TRUE))%>% # find ave of values and call new column "mean_vals"
+  filter(Variables!="AbsPressure")%>%filter(Variables!="Serial")%>% #filter out unneeded columns
+  separate(date,into=c("day", "time"), 
+              sep=" ")%>%
+  pivot_wider(names_from = Variables,
+              values_from = mean_vals)
+```
+
+```{r}
+conddepth%>%select(-day)%>%
+  kbl()
+```
+
+```{r}
+ggplot(data=conddata,aes(date))+
+ geom_smooth(aes(y=Salinity), method="loess", col="blue") + # y-axis 1
+  geom_smooth(aes(y=Temperature), method="loess", col="red")+ #y-axis 2
+  scale_y_continuous(name="Salinity", sec.axis=sec_axis(~., name="Temperature (C)"))+ # make two different axis scales for two different variables
+  theme_light(base_size=8)+ # aesthetic changes
+  theme(
+    axis.title.y.left=element_text(color="blue"),
+    axis.text.y.left=element_text(color="blue"),
+    axis.title.y.right=element_text(color="red"),
+    axis.text.y.right=element_text(color="red"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank())
+```
+
