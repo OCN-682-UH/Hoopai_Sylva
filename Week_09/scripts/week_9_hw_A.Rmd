@@ -1,0 +1,117 @@
+---
+title: "Week_09_hw#1"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      error = FALSE)
+```
+
+```{r}
+#load libraries
+library(ggplot2)
+library(tidyverse)
+library(here)
+library(tidyverse)
+library(tidytext)
+library(PNWColors)
+```
+
+```{r}
+#load datasets
+fishcount <- read.csv(here("Week_09","data","fish_count_kbay.csv"))
+square_complex <- read.csv(here("Week_09","data","squares_complexity.csv"))
+```
+
+```{r}
+#This dataset was recently collected for another class. The 'fishcount' dataset is a fishcount of a specific 1x1 meter square in K bay. The 'square_complex' dataset is teh complexity of those same squares in kbay.
+
+#To find evenness of the fish abundance, we need the Shannon diversity index... whatever that means. To find this number, we use function 
+
+    shan <- function(x){ #making function named 'shan'
+  pop <- table(x) %>% as.vector() #
+  N <- sum(pop)
+  p <- pop/N
+  -sum(p*log(p)) 
+    }
+```
+
+```{r}
+#working with the datasets
+
+#to find evenness of each square, we...
+
+fishcount_square<-fishcount%>% 
+  uncount(abundance)%>% #expand upon abundance, make each unique finding it's own row
+  select(-feeding)%>% # get rid of the feeding column
+  group_by(square)%>% 
+  summarize(richness=length(unique(species)), ##determine species richness by finding all unique species present
+            abundance=n(), # find total abundance by finding how much rows pertain to a square
+            shannon=shan(species))%>% # #apply function to the species columns
+  mutate(even=shannon/log(richness)) #find evenness using equation 
+
+fishcount_tf<-fishcount%>%
+  group_by(square,video_id,minute)%>% #work out of square, video id, and minute column
+  summarize(richness=length(unique(species)), #determine species richness by finding all unique species present
+            abundance=sum(abundance),
+            feeding=sum(feeding))%>% #find total amount of feeding cases
+            mutate(feeding_prop = feeding/abundance) #find the proportion of eating cases, just cuz it makes it like professional
+
+comp_1b<-square_complex%>% #make a new dataset working out of site 1b
+  filter(site=="1b")
+
+squarefish <- fishcount_tf %>%
+  group_by(square) %>%
+    summarize(maxrich=max(richness), #summarize the max and mean richness and abundance
+            averich = mean(richness),
+            ave_abun=mean(abundance),
+            ave_prop=mean(feeding_prop))%>%
+  left_join(.,fishcount_square)%>% # join with previous 
+  left_join(.,comp_1b)
+```
+```{r}
+#making functions for plots
+
+rich_plot<-function(data,x,y){ #making a simple plot for looking at richness
+  ggplot(data, aes(x = {{x}}, y = {{y}}))+
+    geom_point()+
+  geom_smooth(method = "lm")
+}
+  
+abundance_plot<-function(data,x,y){ #making plot for looking at abundance
+  ggplot(data, aes(x = {{x}}, y = {{y}}))+
+    geom_point()+
+  geom_smooth(method = "lm")
+}
+
+  r2_rich<-rich_plot(data = squarefish, x = log(r2), y = averich) #comparing mean richness to rugosity of squares
+  ggsave(here("Week_09", "output","plot1A_hw9.png"), plot = r2_rich, width = 8, height = 6)
+
+  h2_rich <- rich_plot(data = squarefish, x = log(h2), y = averich)#comparing mean richness to height range of squares
+  ggsave(here("Week_09", "output","plot1B_hw9.png"), plot = h2_rich, width = 8, height = 6)
+  
+  d2_rich <- rich_plot(data = squarefish, x = d2, y = averich) #comparing mean richness to fractal dimension of squares
+  ggsave(here("Week_09", "output","plot1C_hw9.png"), plot = d2_rich, width = 8, height = 6)
+  
+  r2_abun <- abundance_plot(data = squarefish, x = log(r2), y = ave_abun) #comparing mean abundance to rugosity of squares
+  ggsave(here("Week_09", "output","plot2A_hw9.png"), plot = r2_abun, width = 8, height = 6)
+  
+  h2_abun <- abundance_plot(data = squarefish, x = log(h2), y = ave_abun)#comparing mean abundance to height range of squares
+  ggsave(here("Week_09", "output","plot2B_hw9.png"), plot = h2_abun, width = 8, height = 6)
+  
+  d2_abun <- abundance_plot(data = squarefish, x = d2, y = ave_abun) #comparing mean abundance to fractal dimension of squares
+  ggsave(here("Week_09", "output","plot2C_hw9.png"), plot = d2_abun, width = 8, height = 6)
+  
+print(r2_rich)
+print(h2_rich)
+print(d2_rich)
+print(r2_abun)
+print(h2_abun)
+print(d2_abun)
+  
+```
+
