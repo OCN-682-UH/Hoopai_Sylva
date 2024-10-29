@@ -1,0 +1,159 @@
+---
+title: "Good plot/Bad plot"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      fig.width=7, fig.height=7)
+```
+
+```{r}
+#load libraries
+
+library(ggplot2)
+library(devtools)
+library(tidyverse)
+library(here)
+library(tidyverse)
+library(tidytext)
+library(PNWColors)
+library(cowplot)
+library(ggforce)
+library(magick)
+
+```
+
+```{r}
+#work on the dataframe - showing the shot chart of the great, late Kobe Bryant's 81 point performance
+devtools::install_github("abresler/nbastatR") # read in nba stats dataset
+
+#help(package = "nbastatR")
+
+Sys.setenv(VROOM_CONNECTION_SIZE = 1e6) # had to make this bigger
+team_list <- nbastatR::nba_teams() #find every NBA team
+
+lakers_id<-team_list%>% #filter to just the Lakers
+  filter(teamName=="lakers")
+
+lakers<-lakers_id$nameTeam
+
+lakers_shots <- nbastatR::teams_shots(teams = lakers, seasons = 2006) #find lakers team stats from 2006
+
+kobe_shots <- lakers_shots %>%
+  filter(namePlayer == "Kobe Bryant")%>% #filter to only Kobe Bryant
+  filter(dateGame==20060122) #filter to the date his masterclass performance took place
+```
+
+
+```{r}
+#bad plot
+draw_court <- function() { #my attempt to make a basketball court for the "good plot" lol. ended up changing colors around to make it more gross
+  court <- ggplot() +
+    # Court outline (50 feet wide by 47 feet deep)
+    geom_rect(aes(xmin = -250, xmax = 250, ymin = 0, ymax = 470), fill = "tan") +
+    # Complete three-point arc (drawn as two segments)
+    geom_segment(aes(x = -237.5, y = 0, xend = -237.5, yend = 101.25), color = "red", size = 1) + # Left vertical
+    geom_arc(aes(x0 = 0, y0 = 0, r = 237.5, start = pi, end = 0), color = "red", size = 1) + # Left arc
+    geom_segment(aes(x = 237.5, y = 0, xend = 237.5, yend = 101.25), color = "black", size = 2) + # Right vertical
+    geom_arc(aes(x0 = 0, y0 = 0, r = 237.5, start = 0, end = pi), color = "black", size = 1) + # Right arc
+    # Key (Paint area)
+    geom_rect(aes(xmin = -80, xmax = 80, ymin = 0, ymax = 19), fill = "lightgray") +
+    # Free throw lines
+    geom_segment(aes(x = -225, xend = -225, y = 0, yend = 15), color = "black", size = 1) +  # Left side
+    geom_segment(aes(x = 225, xend = 225, y = 0, yend = 15), color = "red", size = 1) +  # Right side
+    # Key boundary lines
+    geom_segment(aes(x = -80, xend = -80, y = 0, yend = 19), color = "black", size = 1.5) +  # Left key line
+    geom_segment(aes(x = 80, xend = 80, y = 0, yend = 19), color = "black", size = 1) +  # Right key line
+    coord_fixed() +
+    theme_void() +
+    xlim(-250, 250) +  # Adjust the x limits to show the full width
+    ylim(0, 470)       # Adjust the y limits to show the full height
+
+  return(court)
+}
+
+shotchart<-draw_court() +
+  geom_point(data = kobe_shots, aes(x = locationX, y = locationY), color = "#C6F53BEC", alpha = 0.5, size = 3) + #make points of where kobe shot ball
+  labs(title = "Kobe shots          81    points",
+       x = "Court", 
+       y = "Court  ")+ #weird labels
+  theme(
+  plot.title = element_text(hjust = .95, vjust=.00001, size = 12), #random assortment of title edits
+  axis.title.x = element_text(size = 12.3,vjust = 2, hjust = .3862),
+  axis.title.y = element_text(size = 8)
+)
+
+bad_image <- image_read("https://1.bp.blogspot.com/-mU_x0q5xCk4/XeZ8ktunk7I/AAAAAAAAIfM/XDfPofwiAlcQ7wwPUoz_cL1Nr8dK6FsLACNcBGAsYHQ/s640/123843benuz0twjj6wxdfe.png")
+
+bad_image <- image_crop(bad_image, "1000x1500+140")
+
+bad_raster <- as.raster(bad_image)
+
+
+
+# Combine the ggplot and image using ggdraw
+bad_plot <- ggdraw() +
+  draw_plot(shotchart) +
+  draw_image(bad_raster, x = 0.28, y = 0.69, width = 0.25, height = 0.25)  # Adjust x, y, width, height
+
+# Save the final plot
+ggsave(here("Good_Bad", "output", "Bad_plot.png"), plot = bad_plot)
+```
+
+
+
+```{r}
+#good plot
+
+source("https://raw.githubusercontent.com/toddwschneider/ballr/master/plot_court.R") #pull the shape of a basketball court from a public repo
+source("https://raw.githubusercontent.com/toddwschneider/ballr/master/court_themes.R")
+plot_court() # created the court_points object we need
+court_points <- court_points %>% mutate_if(is.numeric,~.*10) #set the scale of the court to match our points
+
+kobe_shots$isShotMade <- factor(kobe_shots$isShotMade, 
+                                 levels = c(TRUE, FALSE), 
+                                 labels = c("Make", "Miss")) #make his shots made into a factor to be able to use them as a legend
+
+p<-ggplot(kobe_shots, aes(x=locationX, y=locationY+45)) + 
+  scale_fill_manual(values = c("Make" = "#00529b", "Miss" = "#cc4b4b"), # make a legend to signify make/miss
+                    name = "") + 
+  geom_path(data = court_points, # use the basketball court 
+    aes(x = x, y = y, group = desc),
+    color = "#F0DC24EC")+
+  coord_equal()+ # scale x and y coords equally
+  geom_point(aes(fill=isShotMade),pch=21,size=4,color="white") +
+    xlim(-250, 250) +
+  theme_minimal()+
+  theme(axis.text = element_blank(), #get rid of axis text
+    panel.grid.major = element_blank(),  # Remove major grid lines 
+    panel.grid.minor = element_blank(),
+    axis.line = element_blank(), #get rid of axis lines
+    plot.title = element_text(hjust = 0.5, color = "white"), #edit plot title
+    legend.text = element_text(color = "white"),  # Change legend text color
+      legend.title = element_text(color = "white"),
+    legend.position = c(0.1, 0.9),
+    panel.background = element_rect(fill = "#3B0E8AEC"))+
+  labs(title="Shot Chart of Kobe Bryant's 81 Point Game - 1/22/06",x="", 
+                     y="")
+  
+
+image_url <- "https://image.cnbcfm.com/api/v1/image/101524695-457220551.jpg?v=1395781183&w=1920&h=1080"  # image of the bean
+image <- image_read(image_url)
+
+image_raster <- as.raster(image) #convert to raster
+
+# Combine the ggplot and image
+final_plot <- ggdraw() +
+  draw_plot(p) +
+  draw_image(image_raster, x = 0.68, y = 0.69, width = 0.25, height = 0.25)  # Adjust x, y, width, height
+
+# Save the final plot
+ggsave(here("Good_Bad", "output", "Good_plot.png"), plot = final_plot)
+
+```
+
+
