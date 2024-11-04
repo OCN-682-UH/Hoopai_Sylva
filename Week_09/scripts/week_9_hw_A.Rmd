@@ -13,12 +13,15 @@ knitr::opts_chunk$set(echo = TRUE,
 
 ```{r}
 #load libraries
+
 library(ggplot2)
+library(devtools)
 library(tidyverse)
 library(here)
 library(tidyverse)
 library(tidytext)
 library(PNWColors)
+
 ```
 
 ```{r}
