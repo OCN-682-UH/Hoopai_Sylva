@@ -1,0 +1,110 @@
+---
+title: "Week_7"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load in da packages
+```{r}
+library(tidyverse)
+library(here)
+library(maps)
+library(mapdata)
+library(mapproj)
+```
+
+## read in da data
+```{r}
+# Read in data on population in California by county
+popdata<-read_csv(here("Week_07","data","CApopdata.csv"))
+#read in data on number of seastars at different field sites
+stars<-read_csv(here("Week_07","data","stars.csv"))
+```
+
+## look at map data
+```{r}
+world<-map_data("world")
+glimpse(world)
+
+usa<-map_data("usa")
+glimpse(usa)
+
+states<-map_data("state")
+glimpse(states)
+
+counties<-map_data("county")
+glimpse(counties)
+```
+
+## look at maps
+```{r}
+ggplot()+
+  geom_polygon(data = world, 
+               aes(x = long, 
+                   y = lat, 
+                   group = group,
+                   fill = region),
+               color = "black")+
+  theme_minimal()+
+  guides(fill = FALSE)+
+  theme(panel.background = element_rect(fill = "blue4"))+
+  coord_map(projection = "mercator",
+            xlim = c(-180,180))
+```
+
+## cali map read in
+```{r}
+CA_data<-counties %>%
+  filter(region == "california")
+```
+
+## cali map display
+```{r}
+ggplot()+
+  geom_polygon(data = CA_data, 
+               aes(x = long, 
+                   y = lat, 
+                   group = group,
+                   fill = subregion),
+               color = "black")+
+  theme_minimal()+
+  guides(fill = FALSE)
+  
+```
+
+## population data
+```{r}
+CApop_county<-popdata %>%
+  select("subregion" = County, Population)  %>% # rename the county col
+  inner_join(counties) %>%
+  filter(region == "california") # some counties have same names in other states
+```
+
+# cali population map
+```{r}
+ggplot()+
+geom_polygon(data = CApop_county, 
+             aes(x = long, 
+                 y = lat, 
+                 group = group,
+                 fill = Population),
+             color = "black")+
+  coord_map()+
+  theme_void()+
+  scale_fill_gradient(trans = "log10")+
+  geom_point(data = stars, # add a point at all my sites
+             aes(x = long,
+                 y = lat,
+             size=star_no),alpha=.8)+
+  coord_map()+
+  theme_void() +
+  scale_fill_gradient(trans = "log10")+
+  labs(size = "# stars/m2")
+  ggsave(here("Week_07","output","CApop.pdf"))
+```
+

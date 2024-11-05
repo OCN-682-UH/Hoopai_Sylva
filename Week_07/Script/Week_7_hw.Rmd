@@ -1,0 +1,58 @@
+---
+title: "Week_7_HW"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message= FALSE, #No messages
+                      warning= FALSE, #No warnings 
+                      fig.path= "../Output/")
+```
+
+```{r}
+#load in packages
+library(tidyverse) 
+library(maps)
+library(mapdata)
+library(mapproj)
+```
+
+
+```{r}
+#read in data
+bigfoot <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2022/2022-09-13/bigfoot.csv')
+```
+
+```{r}
+states<-map_data("state")
+glimpse(states)
+
+bigfoot <- bigfoot %>% 
+  group_by(state) %>%
+  summarise(sightings= n()) 
+
+states1<-states%>%
+  mutate(region=str_to_title(region))%>%
+  rename(state=region)%>%
+  left_join(.,bigfoot)
+  
+```
+
+```{r bigfoot_sighting_hw}
+ggplot()+
+  geom_polygon(data = states1, 
+               aes(x = long, 
+                   y = lat, 
+                   group = group,
+                   fill = sightings),
+               color = "black")+
+  coord_map(projection = "mercator")+
+  theme_light()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  labs(fill= "Bigfoot Sightings",
+       title= "Bigfoot Sightings by State")
+```
+

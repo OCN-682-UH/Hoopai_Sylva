@@ -1,0 +1,84 @@
+---
+title: "My Week 6 in MB612"
+author: "Hanalei"
+date: "2024-10-01"
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.path = "../Output/")
+```
+
+# Intro to RMD...
+## **WARNING** this rdm file will make you:  
+- wish you hadn't seen it. 
+- wish you never TA'd this class. 
+- probably feel a little sick to your stomach for the lack of creativity caused by lack of understanding up until the last second
+
+today, we are working w/ last weeks data to *learn* **R Markdown**
+
+# Load Libraries
+```{r}
+library(tidyverse)
+library(here)
+library(cowplot)
+library(lubridate)
+library(rmarkdown)
+library(tinytex)
+library(palmerpenguins)
+library(kableExtra)
+```
+
+# Read in data
+```{r}
+conddata<-read_csv(here("Week_06","Data", "CondData.csv"))
+depthdata<-read_csv(here("Week_06","Data", "DepthData.csv")) #use last weeks df
+```
+# Change df around
+```{r}
+cond_dates<-conddata%>% # make a new df
+  mutate(Date = mdy_hms(date))%>% # change into standard datetime
+  select(-date)
+
+conddepth<-cond_dates%>%
+  mutate(date = round_date(Date,"10 mins"))%>% #round up to 10 min
+  select(-Date)%>% #get rid of old "Date" column
+  left_join(.,depthdata)%>% # join two datasets together
+  drop_na()%>%
+  select(date, everything())%>%# drop NAs
+  select(date, everything())%>% # move "date" column in front
+  pivot_longer(cols = Temperature:Depth, # the cols you want to pivot. This says select the temp to percent SGD cols  
+               names_to = "Variables", # the names of the new cols with all the column names 
+               values_to = "Values")%>%
+  group_by(date, Variables)%>% 
+  summarise(mean_vals = mean(Values, na.rm = TRUE))%>% # find ave of values and call new column "mean_vals"
+  filter(Variables!="AbsPressure")%>%filter(Variables!="Serial")%>% #filter out unneeded columns
+  pivot_wider(names_from = Variables,
+              values_from = mean_vals)
+```
+
+```{r crappy_datatable, table.align='center',table.cap="another really rushed data table showing the Depth, Salinity, and Temp collected at each time"}
+conddepth%>%
+  kbl()%>%
+  kable_material_dark()%>%
+  kable_styling(full_width = FALSE)
+```
+```{r}
+glimpse(conddepth)
+```
+
+```{r worst_fig_ever,fig.align="center",fig.cap="this was a **rushed** attempt to get my homework in on time. I fixed this 10 minutes before having to leave for class so please have *mercy*"}
+ggplot(data=conddepth,aes(x=date))+
+ geom_smooth(aes(y=Salinity), method="loess", col="orange2") + # y-axis 1
+  geom_smooth(aes(y=Depth), method="loess", col="grey25")+ #y-axis 2
+  scale_y_continuous(name="Salinity", sec.axis=sec_axis(~., name="Depth (m)"))+ # make two different axis scales for two different variables
+  theme_light(base_size=8)
+```
+
