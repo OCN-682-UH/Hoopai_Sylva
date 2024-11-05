@@ -1,0 +1,59 @@
+---
+title: "TidyTues1"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      error = FALSE)
+```
+
+
+```{r}
+library(tidyverse)
+library(here)
+library(janitor)
+library(forcats)
+library(RColorBrewer)
+library(viridis)
+```
+
+
+```{r}
+monster_movie_genres <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-10-29/monster_movie_genres.csv')
+monster_movies <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-10-29/monster_movies.csv')
+```
+
+```{r}
+monster_movies <- monster_movies %>%
+  filter(title_type=="movie")%>%
+  mutate(decade = factor(floor(year / 10) * 10)) #make a decade section using the floor() function, turn to a factor so that they are in order on ggplot
+
+
+dabest <- monster_movies%>%
+  group_by(decade) %>%
+  top_n(1, average_rating) %>% #find the best movie of each decade
+  ungroup()
+
+
+dabest%>%
+ggplot(aes(x = decade, y = average_rating, fill = decade)) +
+  geom_col()+
+  labs(title = "Horror Movies by Decade",
+       x = "Decade",
+       y = "Average Rating") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major = element_blank(),  # Remove major grid lines
+    panel.grid.minor = element_blank())+
+  scale_fill_viridis(discrete = TRUE, option = "D")+ #learned how to use a color gradient!!
+  geom_text(aes(label = primary_title, y = 4), color = "grey5", size = 3, angle = 90, hjust = 0.5,vjust = .9) #learned how to use geom_text!!
+
+ggsave(here("TidyTues","TTweek_01", "output", "best_scary_movies.png")) 
+
+
+```
+
