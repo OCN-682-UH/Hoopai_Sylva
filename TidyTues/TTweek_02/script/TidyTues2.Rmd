@@ -1,0 +1,70 @@
+---
+title: "TiduTues2"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE,
+                      warning=FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(gganimate)
+library(maps)
+library(mapdata)
+library(mapproj)
+```
+
+```{r}
+democracy_data <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-05/democracy_data.csv')
+```
+
+```{r}
+world<-map_data("world")
+glimpse(world)
+```
+
+```{r}
+#My attempt to look at a map of the countries who have had and not had a a fair election on a map by year... bare with me 
+
+clean_democracy<-democracy_data%>%
+  select(country_name,has_free_and_fair_election,election_year)%>% #select what i need
+  drop_na()%>% #get rid of NAs
+  rename(region=country_name)%>% #rename so that i can merge with map_data
+  inner_join(world)%>%
+  filter(election_year >= 1950) #use only results from 1950 and above
+
+
+```
+
+```{r}
+d_map<-ggplot()+
+geom_polygon(data = clean_democracy, 
+             aes(x = long, 
+                 y = lat, 
+                 group = group,
+                 fill = has_free_and_fair_election),
+             color = "black")+
+  coord_map()+
+  transition_time(election_year)+ #name what needs to be transitioned over time
+  labs(subtitle = "Year: {round(frame_time)}", #have the year show up to countdown the animation, round up the year so that itʻs not using decimal points
+       fill = "Fair Election?") + #change label name
+  ease_aes('linear') #Use to make the animation smooth
+
+fair_map <- animate(d_map, 
+        nframes = length(unique(clean_democracy$election_year)) * 2, #slow down the animation to be able to read it
+        fps = 2) 
+
+anim_save(here("TidyTues", "TTweek_02", "output", "fair_elections_animation.gif"), 
+          animation = fair_map)
+```
+
+```{r}
+# I learned how to use gganimate to show the changes over the years in fair election results. Iʻm not too pleased with the outcome because it definitely looks a bit funky, but Iʻm glad I was able to figure out how to animate my figure for the first time!
+```
+
