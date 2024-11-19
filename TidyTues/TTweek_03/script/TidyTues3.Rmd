@@ -1,0 +1,49 @@
+---
+title: "TidyTues3"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE,
+                      warning=FALSE)
+```
+
+
+```{r}
+library(tidyverse)
+library(here)
+library(lubridate)
+library(countrycode)
+```
+
+```{r}
+countries <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-12/countries.csv')
+country_sub <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-12/country_subdivisions.csv')
+former_countries <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-12/former_countries.csv')
+
+glimpse(former_countries)
+```
+
+```{r}
+# I was finally able to understand the ʻlubridateʻ package. I know weʻeve worked with it before but I never understood it. Using this dataset, I had to convert the dates to as.Date to be able to plot a timeline of when countries were withdrawn 
+
+former_countries$date_withdrawn <- as.Date(former_countries$date_withdrawn, format = "%Y-%m-%d") #set all inconsistent dates in the ʻdate_withdrawnʻ column as consistent dates
+
+former_countries <- former_countries%>% #select what I need and drop NAs
+  select(name,date_withdrawn)%>%
+  drop_na()
+```
+
+```{r}
+ggplot(former_countries, aes(x = date_withdrawn, y = name)) +
+  geom_point(color = "blue", size = 4) +  # Apply color
+  labs(title = "Timeline of Former Countries Withdrawals", x = "Date", y = "Country") +
+  theme_minimal()
+
+ggsave(here("TidyTues","TTweek_03", "output", "countries_withdrawn_timeline.png"))
+```
+
+
