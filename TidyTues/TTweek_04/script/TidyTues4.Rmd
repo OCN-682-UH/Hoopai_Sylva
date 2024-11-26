@@ -1,0 +1,53 @@
+---
+title: "TidyTues4"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      error = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+library(corrplot)
+library(janitor)
+```
+
+```{r}
+episode_metrics <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-19/episode_metrics.csv')
+
+head(episode_metrics)
+```
+
+```{r}
+episode_metrics <- episode_metrics %>%
+  clean_names()%>%
+  rename_with(~ gsub("_", " ", .)) #clean up names and get rid of "_"s
+```
+
+```{r}
+cor_matrix <- cor(episode_metrics[, c("dialogue density", "avg length", "sentiment variance", "unique words", "question ratio", "exclamation ratio")]) #create a correlation matrix with all the metrics provided
+```
+
+```{r}
+pdf(here("TidyTues", "TTweek_04", "output", "correlation_heatmap.pdf"), width = 10, height = 8)
+
+corrplot(cor_matrix, method = "color", type = "upper", #make corplot using color method (shows colors for correlation) and upper type to make it look cleaner
+         tl.cex = 0.9, #label size
+         title = "Correlation Heatmap of TV Show Metrics",
+         mar = c(0, 0, 1.5, 0), #adjust margins
+         tl.col = "navy")
+
+
+dev.off() #idk hwo, but this saves corrplot outputs
+
+    
+#I learned how to use a correlation heat map using package corplot!! I was thinking about using one for my own data Iʻm collecting for my thesis so this was the perfect practice to figure out what to do. It doesnʻt make much sense in the context of this data set, but letʻs be fair... this data set was pretty lame to begin with. 
+```
+
