@@ -1,0 +1,61 @@
+---
+title: "TidyTues5"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE,
+                      warning=FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+library(lubridate)
+library(viridis)
+```
+
+```{r}
+traffic <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/main/data/2024/2024-12-03/A64_traffic.csv')
+
+head(traffic)
+```
+
+```{r}
+traffic <- traffic%>%
+  rename_with(~ gsub(" ", "_", .))%>% #get rid of spaces, turn into "_"
+  mutate(Report_Date = as.Date(Report_Date))%>% #use the as.Date function for dates
+  mutate(DayOfWeek = weekdays(Report_Date)) #use weekdays funtion to find the exact days the dates took place
+  
+traffic$SiteId <- as.factor(traffic$SiteId) #Turn siteID into a factor
+
+traffic$DayOfWeek <- factor(traffic$DayOfWeek, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")) #turn new day of week column into factor
+```
+
+```{r}
+palette <- inferno(4) #setting a color palette for my plot
+
+ggplot(traffic, aes(x = DayOfWeek, y = Total_Volume, fill = SiteId))+ 
+  geom_bar(stat = "identity", position = "dodge")+ #use "identity" to plot the bars y-axis with the given volume values  
+  facet_wrap(~ SiteId)+  #facet by siteID
+  labs(
+    title = "Traffic Volume by Site and Day of the Week",
+    x = "Day of the Week",
+    y = "Total Volume",
+    fill = "Site Name"
+  )+
+  theme_minimal()+  
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none")+
+  scale_fill_manual(values = setNames(palette, levels(traffic$SiteId))) #put the palette to use
+
+ggsave(here("TidyTues","TTweek_05", "output", "Traffic_volume.png"))
+
+
+#I learned a few smaller things this week. Firstly I wanted to see if there was a way to turn dates into days of the week for my plot. I found the "weekdays" function to do that! I also learned to use the stat = "identity" to count the values inside the volume column instead of count the occurences. Lastly, I learned how to apply a palette to my plot rather than manually input colors!
+```
+
