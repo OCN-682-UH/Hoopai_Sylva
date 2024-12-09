@@ -1,0 +1,48 @@
+---
+title: "TidyTues6"
+author: "Hanalei"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE,
+                      warning=FALSE)
+```
+
+# So I did a dumb and accidentally skipped ahead last week for Tidy Tuesday. This week I will be going back to work on the dataset I missed last week.
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+```
+
+
+```{r}
+cbp_resp <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-26/cbp_resp.csv')
+cbp_state <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2024/2024-11-26/cbp_state.csv')
+```
+## This dataset is enormous... so enormous that my laptop could not handle running most tasks without the app crashing or task failing. Because of that, I had to do something a little boring with the data
+
+```{r}
+agg_data_year_demographic <- cbp_state %>%
+  group_by(fiscal_year, demographic) %>%
+  summarise(total_encounter_count = sum(encounter_count), .groups = 'drop')
+
+```
+
+### Still, I learned what an area plot is and how to incorporate it. I intended to make a PCA but my laptop seriously almost caught fire so I didnʻt end up doing that.
+
+```{r}
+ggplot(agg_data_year_demographic, aes(x = fiscal_year, y = total_encounter_count, fill = demographic)) +
+  geom_area() +
+  labs(title = "Stacked Area Plot of Encounters by Demographic",
+       x = "Fiscal Year", y = "Total Encounters") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3")
+
+ggsave(here("TidyTues","TTweek_06", "output", "AreaPlotTT6.png"))
+```
+
